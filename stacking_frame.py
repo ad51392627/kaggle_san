@@ -109,7 +109,7 @@ def stacking_training (X,y,X_pred,layer_list,meta_learner):
     print ('拟合中')
     stacking_in_layer.fit(X,y)
     pred_proba = stacking_in_layer.predict_proba(X_pred)
-    return pred_proba
+    return pred_proba,stacking_in_layer
 
 
 def main():
@@ -161,12 +161,17 @@ def main():
             if est_name == case_est:
                 est.set_params(**params)
     layer_list = constant.layer_list
-    pred_proba_1 = stacking_training(X,y,X_pred,layer_list = layer_list,meta_learner = meta_learner)
+    pred_proba_1 ,stacking_model = stacking_training(X,y,X_pred,layer_list = layer_list,meta_learner = meta_learner)
     print (roc_auc_score(y_truth, pred_proba_1[:,1]))
     timer(starter_time)
-    return pred_proba_1
+    return pred_proba_1, stacking_model
 
 if __name__ == '__main__':
-    main()
+    df_total_test = pd.read_csv('test.csv)
+    df_test_X = df_total_test
+    pred_proba_1,stacking_model = main()
+    prediction = stacking_model.predict_proba(df_test_X.values)
+    pd.DataFrame(prediction).to_csv('output.csv')
+    
 
 
