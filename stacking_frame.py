@@ -3,14 +3,7 @@ import pandas as pd
 import mlens 
 from datetime import datetime
 from sklearn import metrics
-from sklearn.preprocessing import MinMaxScaler
-# Inputs
-from sklearn.neighbors import KNeighborsClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.svm import SVC
-from sklearn.naive_bayes import GaussianNB
-from xgboost import XGBClassifier
+
 # Data viz
 from mlens.visualization import corr_X_y, corrmat
 
@@ -75,12 +68,12 @@ def plot_roc_curve (ytest, P_base_learners, labels):
     plt.savefig('model_roc.png')
     plt.show()
 
-def base_hyperparam_tuning (X,y,base_learners, param_dicts, n_iterations = 50):
+def base_hyperparam_tuning (X,y,base_learners, param_dicts, n_iterations = 100):
     '''基层模型超参数调节，当前评估指标为auc'''
     X = X.values
     y = y.values
     scorer = make_scorer(metrics.roc_auc_score, greater_is_better=True)
-    evl = Evaluator(scorer, cv=5, verbose = 10, backend= 'multiprocessing')
+    evl = Evaluator(scorer, cv=5, verbose = 20, backend= 'multiprocessing')
     evl.fit(X, y, estimators=base_learners, param_dicts=param_dicts, n_iter = n_iterations)
     df_params = pd.DataFrame(evl.results)
     return df_params
@@ -101,7 +94,7 @@ def layer_hyperparam_tuning(X,y,pre_layer_learners, local_layer_learners, param_
     in_layer = SuperLearner(folds = 10, backend= 'multiprocessing', model_selection=True)
     in_layer.add(pre_layer_learners,proba=True)
     preprocess = [in_layer]
-    evl = Evaluator(scorer,cv=5,verbose = 10,backend= 'multiprocessing')
+    evl = Evaluator(scorer,cv=5,verbose = 20,backend= 'multiprocessing')
     evl.fit(X, y, local_layer_learners, param_dicts = param_dicts_layer, preprocessing={'meta': preprocess},n_iter=n_iterations)
     df_params_layer = pd.DataFrame(evl.results)
     return in_layer, df_params_layer
@@ -147,8 +140,8 @@ def main():
     layer1_param_dicts = constant.layer1_param_dicts
     print ('开始为中间层调参')
     
-    in_layer_1, df_params_1 = layer_hyperparam_tuning(X,y,pre_layer_learners=base_learners, local_layer_learners = layer1_learners, param_dicts_layer = layer1_param_dicts, n_iterations = 50, pre_params = 'params_base.csv')
-    df_params_1.to_csv('params1.csv')
+    #in_layer_1, df_params_1 = layer_hyperparam_tuning(X,y,pre_layer_learners=base_learners, local_layer_learners = layer1_learners, param_dicts_layer = layer1_param_dicts, n_iterations = 50, pre_params = 'params_base.csv')
+    #df_params_1.to_csv('params1.csv')
     
     
     
@@ -157,7 +150,7 @@ def main():
     print ('开始训练元学习器')
     meta_learner = constant.meta_learner
     meta_param_dicts = constant.meta_param_dicts
-    meta_layer_model, df_params_meta = layer_hyperparam_tuning(X,y,pre_layer_learners = layer1_learners, local_layer_learners = meta_learner, param_dicts_layer = meta_param_dicts, n_iterations = 50, pre_params = 'params1.csv')
+    meta_layer_model, df_params_meta = layer_hyperparam_tuning(X,y,pre_layer_learners = layer1_learners, local_layer_learners = meta_learner, param_dicts_layer = meta_param_dicts, n_iterations = 50, pre_params = 'params_base.csv')
     df_params_meta.to_csv('paramsMeta.csv')
     params_pre = pd.read_csv('paramsMeta.csv')
     params_pre.set_index(['Unnamed: 0'], inplace = True)
